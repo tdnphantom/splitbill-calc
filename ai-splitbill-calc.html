@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Split Bill Calculator (IDR)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .input-group:focus-within label {
+            color: #4f46e5;
+        }
+        /* Hide number input spinners */
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .person-entry, .shared-person-entry {
+            transition: all 0.3s ease-in-out;
+        }
+        #aiMessageModal {
+            display: none; /* Hidden by default */
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-lg mx-auto bg-white rounded-2xl shadow-lg p-6 md:p-8">
+        
+        <h1 class="text-2xl md:text-3xl font-bold text-gray-800 text-center mb-6">AI Unequal Split Calculator</h1>
+
+        <!-- Individual Person Entries -->
+        <h2 class="text-lg font-semibold text-gray-700 mb-2">Individual Totals</h2>
+        <div id="peopleContainer" class="space-y-4 mb-4">
+            <!-- Person 1 (initial) -->
+            <div class="person-entry bg-gray-50 p-4 rounded-lg">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0">
+                    <label class="font-medium text-gray-700 w-full sm:w-auto">Person 1</label>
+                    <div class="relative flex-grow">
+                         <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">Rp</span>
+                         <input type="number" name="person_amount" placeholder="Subtotal" class="w-full pl-8 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition duration-300">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="flex space-x-2 mb-6">
+            <button id="addPersonBtn" class="flex-grow bg-blue-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-blue-600 focus:outline-none focus:ring-4 focus:ring-blue-500 focus:ring-opacity-50 transition-transform transform hover:scale-105 duration-300">Add Person</button>
+            <button id="removePersonBtn" class="flex-grow bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 focus:outline-none focus:ring-4 focus:ring-red-500 focus:ring-opacity-50 transition-transform transform hover:scale-105 duration-300">Remove Person</button>
+        </div>
+        
+        <!-- Shared Items Section -->
+        <div id="sharedItemsSection" class="bg-teal-50 p-4 rounded-lg mb-6">
+             <h2 class="text-lg font-semibold text-gray-700 mb-3">✨ Shared Items</h2>
+             <div class="input-group mb-3">
+                <label for="sharedItemsTotal" class="block text-sm font-medium text-gray-600 mb-1">Total Cost of Shared Items</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">Rp</span>
+                    <input type="number" id="sharedItemsTotal" placeholder="e.g., 50000" class="w-full pl-8 pr-4 py-3 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none transition duration-300">
+                </div>
+            </div>
+            <label class="block text-sm font-medium text-gray-600 mb-2">Who shared these items?</label>
+            <div id="sharedPeopleContainer" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                 <!-- Person 1 Checkbox (initial) -->
+                <div class="shared-person-entry flex items-center p-2 bg-white rounded-md border">
+                    <input id="shared-person-1" type="checkbox" class="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500">
+                    <label for="shared-person-1" class="ml-2 block text-sm text-gray-900">Person 1</label>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Discount and Calculation -->
+        <div class="space-y-5">
+            <div class="input-group">
+                <label for="totalDiscount" class="block text-sm font-medium text-gray-600 mb-1">Total Discount (if any)</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">Rp</span>
+                    <input type="number" id="totalDiscount" placeholder="e.g., 10000" class="w-full pl-8 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition duration-300">
+                </div>
+            </div>
+            <button id="calculateBtn" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50 transition-transform transform hover:scale-105 duration-300">Calculate</button>
+        </div>
+
+        <div id="result" class="mt-8 text-center"></div>
+
+    </div>
+    
+    <!-- AI Message Modal -->
+    <div id="aiMessageModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center">
+        <div class="relative mx-auto p-5 border w-full max-w-lg shadow-lg rounded-2xl bg-white">
+            <div class="mt-3 text-center">
+                <h3 class="text-xl leading-6 font-bold text-gray-900">✨ AI-Generated Message</h3>
+                <div id="aiMessageContent" class="mt-4 px-4 py-3 bg-gray-100 rounded-lg min-h-[150px] text-left">
+                    <div id="aiLoader" class="flex justify-center items-center h-full">
+                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+                    </div>
+                    <p id="aiMessageText" class="text-gray-700 whitespace-pre-wrap"></p>
+                </div>
+                <div class="items-center px-4 py-3 space-y-2 sm:space-y-0 sm:flex sm:space-x-2">
+                    <button id="copyMessageBtn" class="w-full sm:w-auto flex-grow items-center justify-center px-4 py-2 bg-green-500 text-white text-base font-medium rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">Copy Message</button>
+                    <button id="closeModalBtn" class="w-full sm:w-auto flex-grow items-center justify-center px-4 py-2 bg-gray-200 text-gray-800 text-base font-medium rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-400">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <script>
+        // --- Element Hooks ---
+        const peopleContainer = document.getElementById('peopleContainer');
+        const sharedPeopleContainer = document.getElementById('sharedPeopleContainer');
+        const addPersonBtn = document.getElementById('addPersonBtn');
+        const removePersonBtn = document.getElementById('removePersonBtn');
+        const calculateBtn = document.getElementById('calculateBtn');
+        const resultDiv = document.getElementById('result');
+        const aiMessageModal = document.getElementById('aiMessageModal');
+        
+        let personCount = 1;
+        let finalBillData = {};
+
+        // --- Manage People ---
+        addPersonBtn.addEventListener('click', () => {
+            personCount++;
+            // Add to individual totals
+            const newPersonEntry = document.createElement('div');
+            newPersonEntry.className = 'person-entry bg-gray-50 p-4 rounded-lg';
+            newPersonEntry.innerHTML = `<div class="flex flex-col sm:flex-row sm:items-center sm:space-x-4 space-y-2 sm:space-y-0"><label class="font-medium text-gray-700 w-full sm:w-auto">Person ${personCount}</label><div class="relative flex-grow"><span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-500">Rp</span><input type="number" name="person_amount" placeholder="Subtotal" class="w-full pl-8 pr-4 py-2 bg-white border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none transition duration-300"></div></div>`;
+            peopleContainer.appendChild(newPersonEntry);
+            
+            // Add to shared items checkboxes
+            const newSharedPersonEntry = document.createElement('div');
+            newSharedPersonEntry.className = 'shared-person-entry flex items-center p-2 bg-white rounded-md border';
+            newSharedPersonEntry.innerHTML = `<input id="shared-person-${personCount}" type="checkbox" class="h-4 w-4 text-teal-600 border-gray-300 rounded focus:ring-teal-500"><label for="shared-person-${personCount}" class="ml-2 block text-sm text-gray-900">Person ${personCount}</label>`;
+            sharedPeopleContainer.appendChild(newSharedPersonEntry);
+        });
+
+        removePersonBtn.addEventListener('click', () => {
+            if (personCount > 1) {
+                peopleContainer.removeChild(peopleContainer.lastChild);
+                sharedPeopleContainer.removeChild(sharedPeopleContainer.lastChild);
+                personCount--;
+            }
+        });
+
+        // --- Calculation Logic ---
+        calculateBtn.addEventListener('click', () => {
+            resultDiv.innerHTML = '';
+            const personInputs = document.querySelectorAll('input[name="person_amount"]');
+            const discount = document.getElementById('totalDiscount').value ? parseFloat(document.getElementById('totalDiscount').value) : 0;
+            const sharedItemsTotal = document.getElementById('sharedItemsTotal').value ? parseFloat(document.getElementById('sharedItemsTotal').value) : 0;
+            
+            let peopleData = [];
+            let errors = [];
+
+            // --- Step 1: Calculate shared items cost per person ---
+            const sharedCheckboxes = document.querySelectorAll('#sharedPeopleContainer input[type="checkbox"]');
+            const peopleSharing = Array.from(sharedCheckboxes).filter(cb => cb.checked);
+            const sharedCostPerPerson = peopleSharing.length > 0 ? sharedItemsTotal / peopleSharing.length : 0;
+
+            // --- Step 2: Build initial data with shared costs added ---
+            personInputs.forEach((input, index) => {
+                const personId = index + 1;
+                let amount = input.value ? parseFloat(input.value) : 0;
+                
+                // Add shared cost if this person participated
+                if (document.getElementById(`shared-person-${personId}`).checked) {
+                    amount += sharedCostPerPerson;
+                }
+
+                if (amount > 0) {
+                    peopleData.push({ id: personId, amount: amount });
+                }
+            });
+
+            // --- Step 3: Validate and Calculate Grand Total ---
+            if (peopleData.length === 0) {
+                errors.push("Please enter a valid amount for at least one person.");
+            }
+            const grandTotal = peopleData.reduce((sum, p) => sum + p.amount, 0);
+
+            if (isNaN(discount) || discount < 0) {
+                errors.push("Please enter a valid discount amount.");
+            }
+            if (discount >= grandTotal && grandTotal > 0) {
+                errors.push("Discount cannot be greater than or equal to the total bill.");
+            }
+            if (errors.length > 0) {
+                displayError(errors);
+                return;
+            }
+
+            // --- Step 4: Calculate final amounts and display ---
+            displayResult(peopleData, grandTotal, discount);
+        });
+
+        function displayError(errors) {
+            const errorHtml = `<div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg text-left"><p class="font-bold">Error</p><ul class="list-disc list-inside">${errors.map(e => `<li>${e}</li>`).join('')}</ul></div>`;
+            resultDiv.innerHTML = errorHtml;
+        }
+
+        function displayResult(peopleData, grandTotal, discount) {
+            let resultHtml = `<div class="bg-green-100 border-t-4 border-green-500 rounded-b text-green-900 px-4 py-3 shadow-md text-left"><h3 class="font-bold text-xl mb-4 text-center">Final Bill</h3><div class="space-y-3">`;
+            
+            const discountRatio = (grandTotal > 0) ? (discount / grandTotal) : 0;
+            finalBillData = { people: [], grandTotal: 0 };
+
+            peopleData.forEach(person => {
+                const personDiscount = person.amount * discountRatio;
+                const finalAmount = person.amount - personDiscount;
+                finalBillData.people.push({ id: person.id, amount: Math.round(finalAmount) });
+                resultHtml += `<div class="flex justify-between items-center border-b border-green-200 pb-2"><span class="font-semibold">Person ${person.id}:</span><span class="font-bold text-lg">Rp ${Math.round(finalAmount).toLocaleString('id-ID')}</span></div>`;
+            });
+            
+            const finalGrandTotal = grandTotal - discount;
+            finalBillData.grandTotal = Math.round(finalGrandTotal);
+
+             resultHtml += `</div><div class="mt-4 pt-3 border-t-2 border-green-300 text-right"><p class="text-sm">Total Before Discount: <span class="font-semibold">Rp ${grandTotal.toLocaleString('id-ID')}</span></p><p class="text-sm">Total Discount: <span class="font-semibold">- Rp ${discount.toLocaleString('id-ID')}</span></p><p class="font-bold text-lg">Grand Total: <span class="text-xl">Rp ${Math.round(finalGrandTotal).toLocaleString('id-ID')}</span></p></div><div class="mt-4"><button id="generateMessageBtn" class="w-full bg-teal-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-teal-600 focus:outline-none focus:ring-4 focus:ring-teal-500 focus:ring-opacity-50">✨ Generate Payment Message</button></div></div>`;
+            resultDiv.innerHTML = resultHtml;
+            
+            // Add event listener for the newly created button
+            document.getElementById('generateMessageBtn').addEventListener('click', openAiModal);
+        }
+        
+        // --- Gemini AI Feature ---
+        function openAiModal() {
+            aiMessageModal.style.display = 'flex';
+            document.getElementById('aiMessageText').style.display = 'none';
+            document.getElementById('aiLoader').style.display = 'flex';
+            generateAiMessage();
+        }
+
+        async function generateAiMessage() {
+            const billDetails = finalBillData.people.map(p => `Person ${p.id}: Rp ${p.amount.toLocaleString('id-ID')}`).join(', ');
+            const prompt = `Generate a friendly and casual message to send to a group chat (like WhatsApp) for splitting a bill. The currency is Indonesian Rupiah (IDR). The message should be polite and clear. Mention the total bill was Rp ${finalBillData.grandTotal.toLocaleString('id-ID')}. Here are the final amounts each person needs to pay: ${billDetails}. End the message by politely suggesting they can transfer the money and to let you know once they have. Keep it concise.`;
+
+            const payload = {
+                contents: [{ role: "user", parts: [{ text: prompt }] }],
+            };
+            const apiKey = ""; 
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    throw new Error(`API request failed with status ${response.status}`);
+                }
+                const result = await response.json();
+                
+                let text = "Sorry, couldn't generate a message. Please try again.";
+                if (result.candidates && result.candidates.length > 0 && result.candidates[0].content && result.candidates[0].content.parts && result.candidates[0].content.parts.length > 0) {
+                    text = result.candidates[0].content.parts[0].text;
+                }
+                
+                document.getElementById('aiMessageText').innerText = text;
+                
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                document.getElementById('aiMessageText').innerText = `Failed to generate message. Error: ${error.message}`;
+            } finally {
+                 document.getElementById('aiLoader').style.display = 'none';
+                 document.getElementById('aiMessageText').style.display = 'block';
+            }
+        }
+        
+        // --- Modal Controls ---
+        document.getElementById('closeModalBtn').addEventListener('click', () => {
+             aiMessageModal.style.display = 'none';
+        });
+        document.getElementById('copyMessageBtn').addEventListener('click', () => {
+            const textToCopy = document.getElementById('aiMessageText').innerText;
+            const tempTextarea = document.createElement('textarea');
+            tempTextarea.value = textToCopy;
+            document.body.appendChild(tempTextarea);
+            tempTextarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(tempTextarea);
+            alert('Message copied to clipboard!');
+        });
+
+    </script>
+</body>
+</html>
